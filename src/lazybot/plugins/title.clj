@@ -20,15 +20,15 @@
 
 (defn slurp-or-default [url]
   (try
-   (with-open [readerurl (reader url)]
-     (loop [acc [] lines (line-seq readerurl)]
-       (cond
-        (not (seq lines)) nil
-        (some #(re-find #"</title>|</TITLE>" %) acc) (->> acc (apply str)
-                                                          (#(.replace % "\n" " "))
-                                                          (re-find titlere))
-        :else (recur (conj acc (first lines)) (rest lines)))))
-   (catch java.lang.Exception e nil)))
+    (with-open [readerurl (reader url)]
+      (let [acc (StringBuilder.)]
+        (loop [lines (line-seq readerurl)]
+          (when-let [[line & lines] (seq lines)]
+            (.append acc line)
+            (if (re-find #"(?i)</title>" line)
+              (->> acc str (re-find titlere))
+              (recur lines))))))
+    (catch Exception _ nil)))
 
 (defn url-blacklist-words [com bot] (:url-blacklist ((:config @bot) (:server @com))))
 
